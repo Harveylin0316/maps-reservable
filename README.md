@@ -2,6 +2,18 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Variables
+
+Before running the development server, make sure to add your Google Maps API key to `.env.local`:
+
+```
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+**⚠️ 請記得將你的 Google Maps API Key 貼到 `.env.local` 檔案中！**
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
