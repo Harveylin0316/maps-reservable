@@ -30,6 +30,7 @@ interface SearchResult {
   mapsUrl: string;
   reservable: boolean;
   priceLevel?: '$' | '$$' | '$$$' | '$$$$';
+  dineIn?: boolean;
   phone?: string;
   website?: string;
   lat?: number;
@@ -82,6 +83,7 @@ export default function Home() {
   const [placeIdSet, setPlaceIdSet] = useState<Set<string>>(new Set());
   const [lastAddedCount, setLastAddedCount] = useState(0);
   const [onlyReservable, setOnlyReservable] = useState(false);
+  const [onlyDineIn, setOnlyDineIn] = useState(false);
   const [priceLevels, setPriceLevels] = useState<Array<'$' | '$$' | '$$$' | '$$$$'>>([]);
   const [hideVisited, setHideVisited] = useState(true);
   const [visitedPlaceIds, setVisitedPlaceIds] = useState<Set<string>>(new Set());
@@ -281,6 +283,7 @@ export default function Home() {
     setHasSearched(true);
     setLastAddedCount(0);
     setSelectedPlaceId(undefined);
+    setOnlyDineIn(false);
     setPriceLevels([]);
     setShowCandidates(false);
     setCandidates([]);
@@ -536,6 +539,9 @@ export default function Home() {
           if (onlyReservable) {
             filteredResults = filteredResults.filter((r) => r.reservable === true);
           }
+          if (onlyDineIn) {
+            filteredResults = filteredResults.filter((r) => r.dineIn === true);
+          }
           if (priceLevels.length > 0) {
             filteredResults = filteredResults.filter(
               (r) => r.priceLevel && priceLevels.includes(r.priceLevel)
@@ -594,6 +600,21 @@ export default function Home() {
                     <span>隱藏已簽約/跳過</span>
                   </label>
 
+                  <label className={styles.checkboxLabel} style={{ marginTop: 10 }}>
+                    <input
+                      type="checkbox"
+                      checked={onlyDineIn}
+                      onChange={(e) => setOnlyDineIn(e.target.checked)}
+                      className={styles.checkbox}
+                    />
+                    <span>只顯示可內用 🍽️</span>
+                  </label>
+                  {onlyDineIn && (
+                    <div className={styles.filterHint}>
+                      依據 Google Places API 的 <code>dineIn</code> 欄位；沒有內用資料的店會被排除。
+                    </div>
+                  )}
+
                   <div className={styles.priceFilterRow}>
                     <div className={styles.priceFilterLabel}>價位：</div>
                     {(['$', '$$', '$$$', '$$$$'] as const).map((p) => {
@@ -640,7 +661,7 @@ export default function Home() {
                   </div>
                 </div>
 
-              {filteredResults.length === 0 && (onlyReservable || priceLevels.length > 0 || hideVisited) ? (
+              {filteredResults.length === 0 && (onlyReservable || onlyDineIn || priceLevels.length > 0 || hideVisited) ? (
                 <div className={styles.emptyMessage}>
                   沒有符合篩選條件的餐廳
                 </div>

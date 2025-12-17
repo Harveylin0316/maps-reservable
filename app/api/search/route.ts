@@ -28,6 +28,7 @@ interface PlaceDetailsResponse {
   reservable?: boolean;
   // Places API v1 enum (e.g. PRICE_LEVEL_INEXPENSIVE, PRICE_LEVEL_MODERATE, ...)
   priceLevel?: string;
+  dineIn?: boolean;
   nationalPhoneNumber?: string;
   internationalPhoneNumber?: string;
   websiteUri?: string;
@@ -45,6 +46,7 @@ interface SearchResult {
   reservable: boolean;
   // Normalized "$"..."$$$$" for UI filtering
   priceLevel?: '$' | '$$' | '$$$' | '$$$$';
+  dineIn?: boolean;
   phone?: string;
   website?: string;
   lat?: number;
@@ -304,7 +306,7 @@ export async function GET(request: NextRequest) {
     // 7. Place Details API (New) - 并发限制 8
     const placeDetailsUrl = 'https://places.googleapis.com/v1/places/';
     const fieldMask =
-      'id,displayName,formattedAddress,googleMapsUri,reservable,priceLevel,location,nationalPhoneNumber,internationalPhoneNumber,websiteUri';
+      'id,displayName,formattedAddress,googleMapsUri,reservable,priceLevel,dineIn,location,nationalPhoneNumber,internationalPhoneNumber,websiteUri';
 
     const getPlaceDetails = async (placeId: string): Promise<SearchResult | null> => {
       try {
@@ -329,6 +331,7 @@ export async function GET(request: NextRequest) {
           mapsUrl: detailsData.googleMapsUri || '',
           reservable: detailsData.reservable || false,
           priceLevel: normalizePriceLevel(detailsData.priceLevel),
+          dineIn: detailsData.dineIn,
           phone: detailsData.nationalPhoneNumber || detailsData.internationalPhoneNumber,
           website: detailsData.websiteUri,
           lat: detailsData.location?.latitude,
