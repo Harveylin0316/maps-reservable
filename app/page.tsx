@@ -85,6 +85,12 @@ export default function Home() {
   const [priceLevels, setPriceLevels] = useState<Array<'$' | '$$' | '$$$' | '$$$$'>>([]);
   const [hideVisited, setHideVisited] = useState(true);
   const [visitedPlaceIds, setVisitedPlaceIds] = useState<Set<string>>(new Set());
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [syncInfo, setSyncInfo] = useState<string | null>(null);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusMeters, setRadiusMeters] = useState(0);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
@@ -94,28 +100,124 @@ export default function Home() {
   const [showCandidates, setShowCandidates] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load visited placeIds from localStorage
-  useEffect(() => {
+  const loadLocalVisited = () => {
     try {
       const raw = localStorage.getItem(VISITED_STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) return new Set<string>();
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        setVisitedPlaceIds(new Set(parsed.filter((x) => typeof x === 'string')));
+        return new Set(parsed.filter((x) => typeof x === 'string'));
       }
+      return new Set<string>();
     } catch {
-      // ignore
+      return new Set<string>();
     }
+  };
+
+  const loadServerVisited = async () => {
+    const res = await fetch('/api/visited', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to load visited list');
+    const data = (await res.json()) as { placeIds?: string[] };
+    setVisitedPlaceIds(new Set((data.placeIds || []).filter((x) => typeof x === 'string')));
+  };
+
+  // Bootstrap auth + visited list
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        const data = (await res.json()) as { authenticated: boolean; username?: string };
+        if (data.authenticated && data.username) {
+          setAuthenticatedUser(data.username);
+          await loadServerVisited();
+        } else {
+          setAuthenticatedUser(null);
+          setVisitedPlaceIds(loadLocalVisited());
+        }
+      } catch {
+        setAuthenticatedUser(null);
+        setVisitedPlaceIds(loadLocalVisited());
+      } finally {
+        setAuthLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist visited placeIds to localStorage
+  // Persist visited to localStorage ONLY when not logged in
   useEffect(() => {
+    if (authenticatedUser) return;
     try {
       localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(Array.from(visitedPlaceIds)));
     } catch {
-      // ignore (e.g. storage quota / private mode)
+      // ignore
     }
-  }, [visitedPlaceIds]);
+  }, [visitedPlaceIds, authenticatedUser]);
+
+  const handleLogin = async () => {
+    setAuthError(null);
+    setSyncInfo(null);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data?.error || '登入失敗');
+        return;
+      }
+      setAuthenticatedUser(loginUsername);
+      setLoginPassword('');
+      try {
+        await loadServerVisited();
+        setSyncInfo('✅ 已登入，已同步雲端「去過」清單');
+      } catch (e) {
+        setAuthError(
+          e instanceof Error
+            ? `已登入，但同步雲端失敗：${e.message}`
+            : '已登入，但同步雲端失敗'
+        );
+      }
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : '登入失敗');
+    }
+  };
+
+  const handleLogout = async () => {
+    setAuthError(null);
+    setSyncInfo(null);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      setAuthenticatedUser(null);
+      setVisitedPlaceIds(loadLocalVisited());
+    }
+  };
+
+  const handleImportLocalToCloud = async () => {
+    setAuthError(null);
+    setSyncInfo(null);
+    if (!authenticatedUser) return;
+    try {
+      const local = Array.from(loadLocalVisited());
+      const res = await fetch('/api/visited', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeIds: local }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data?.error || '同步失敗');
+        return;
+      }
+      await loadServerVisited();
+      setSyncInfo(`✅ 已把本機勾選同步到雲端（${data.imported || 0} 筆）`);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : '同步失敗');
+    }
+  };
 
   // Debounce 调用 resolve API
   useEffect(() => {
@@ -284,6 +386,49 @@ export default function Home() {
     <div className={styles.page}>
       <main className={styles.main}>
         <h1 className={styles.title}>餐廳搜尋</h1>
+
+        {/* Auth */}
+        <div className={styles.authBox}>
+          {authLoading ? (
+            <div className={styles.authMuted}>正在檢查登入狀態...</div>
+          ) : authenticatedUser ? (
+            <div className={styles.authRow}>
+              <div className={styles.authMuted}>已登入：{authenticatedUser}</div>
+              <div className={styles.authActions}>
+                <button type="button" className={styles.authButton} onClick={handleImportLocalToCloud}>
+                  同步本機勾選到雲端
+                </button>
+                <button type="button" className={styles.authButton} onClick={handleLogout}>
+                  登出
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.authRow}>
+              <input
+                className={styles.authInput}
+                placeholder="帳號"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+              />
+              <input
+                className={styles.authInput}
+                placeholder="密碼"
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+              <button type="button" className={styles.authButton} onClick={handleLogin}>
+                登入（同步跨裝置）
+              </button>
+              <div className={styles.authMuted}>
+                沒登入時僅保存在本機；登入後可跨裝置同步「去過」。
+              </div>
+            </div>
+          )}
+          {authError && <div className={styles.authError}>錯誤：{authError}</div>}
+          {syncInfo && <div className={styles.authOk}>{syncInfo}</div>}
+        </div>
         
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
@@ -491,7 +636,7 @@ export default function Home() {
                   )}
 
                   <div className={styles.filterHint}>
-                    已去過會保存在此瀏覽器（localStorage）。換手機/換瀏覽器不會同步。
+                    已去過：未登入→保存在本機；登入→同步到雲端（跨裝置/跨瀏覽器）。
                   </div>
                 </div>
 
@@ -515,14 +660,43 @@ export default function Home() {
                           <input
                             type="checkbox"
                             checked={visitedPlaceIds.has(r.placeId)}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const checked = e.target.checked;
+                              // optimistic UI
                               setVisitedPlaceIds((prev) => {
                                 const next = new Set(prev);
                                 if (checked) next.add(r.placeId);
                                 else next.delete(r.placeId);
                                 return next;
                               });
+
+                              // if logged in, persist to cloud
+                              if (authenticatedUser) {
+                                try {
+                                  const res = await fetch('/api/visited', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ placeId: r.placeId, visited: checked }),
+                                  });
+                                  if (!res.ok) {
+                                    // revert on failure
+                                    setVisitedPlaceIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (checked) next.delete(r.placeId);
+                                      else next.add(r.placeId);
+                                      return next;
+                                    });
+                                  }
+                                } catch {
+                                  // revert on failure
+                                  setVisitedPlaceIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (checked) next.delete(r.placeId);
+                                    else next.add(r.placeId);
+                                    return next;
+                                  });
+                                }
+                              }
                             }}
                           />
                           <span>去過 ✅</span>

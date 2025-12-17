@@ -12,6 +12,27 @@ GOOGLE_MAPS_API_KEY=your_api_key_here
 
 **⚠️ 請記得將你的 Google Maps API Key 貼到 `.env.local` 檔案中！**
 
+#### Cross-device sync (帳密登入 + 去過餐廳同步)
+
+本專案支援用「帳號 / 密碼」登入，並把使用者勾選的「去過餐廳」同步到雲端（跨裝置 / 跨瀏覽器）。
+
+在 `.env.local`（以及 Netlify 的 Environment variables）新增：
+
+```
+# Simple login (single shared account)
+APP_USERNAME=your_username
+APP_PASSWORD=your_password
+
+# Cookie signing secret (random long string)
+APP_SESSION_SECRET=your_random_secret
+
+# Supabase (DB)
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+Supabase 建表 SQL 請參考 `docs/SUPABASE.md`。
+
 ### Running the Development Server
 
 First, run the development server:

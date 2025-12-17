@@ -323,6 +323,85 @@
   border: 1px solid var(--border-color);
 }
 
+.filterHint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.filterHint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.authBox {
+  width: 100%;
+  max-width: 1100px;
+  padding: 12px 14px;
+  margin: 12px 0 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--foreground);
+}
+
+.authRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.authInput {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--background);
+  color: var(--text-primary);
+  min-width: 180px;
+}
+
+.authButton {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.authButton:hover {
+  background-color: var(--button-secondary-hover);
+  border-color: var(--text-primary);
+}
+
+.authActions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.authMuted {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.authError {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #b42318;
+}
+
+.authOk {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--success-color);
+}
+
 .priceFilterRow {
   display: flex;
   align-items: center;
