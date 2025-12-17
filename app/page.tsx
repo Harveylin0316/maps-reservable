@@ -29,6 +29,9 @@ interface SearchResult {
   address: string;
   mapsUrl: string;
   reservable: boolean;
+  priceLevel?: '$' | '$$' | '$$$' | '$$$$';
+  phone?: string;
+  website?: string;
   lat?: number;
   lng?: number;
 }
@@ -77,6 +80,7 @@ export default function Home() {
   const [placeIdSet, setPlaceIdSet] = useState<Set<string>>(new Set());
   const [lastAddedCount, setLastAddedCount] = useState(0);
   const [onlyReservable, setOnlyReservable] = useState(false);
+  const [priceLevels, setPriceLevels] = useState<Array<'$' | '$$' | '$$$' | '$$$$'>>([]);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusMeters, setRadiusMeters] = useState(0);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
@@ -148,6 +152,7 @@ export default function Home() {
     setHasSearched(true);
     setLastAddedCount(0);
     setSelectedPlaceId(undefined);
+    setPriceLevels([]);
     setShowCandidates(false);
     setCandidates([]);
 
@@ -354,10 +359,16 @@ export default function Home() {
         )}
 
         {results.length > 0 && (() => {
-          // 根據 onlyReservable 篩選結果
-          const filteredResults = onlyReservable
-            ? results.filter((r) => r.reservable === true)
-            : results;
+          // 根據篩選條件篩選結果
+          let filteredResults = results;
+          if (onlyReservable) {
+            filteredResults = filteredResults.filter((r) => r.reservable === true);
+          }
+          if (priceLevels.length > 0) {
+            filteredResults = filteredResults.filter(
+              (r) => r.priceLevel && priceLevels.includes(r.priceLevel)
+            );
+          }
 
           const mapPoints = filteredResults
             .filter((r) => r.lat !== undefined && r.lng !== undefined)
@@ -397,11 +408,52 @@ export default function Home() {
                     />
                     <span>只顯示可訂位 ✅</span>
                   </label>
+
+                  <div className={styles.priceFilterRow}>
+                    <div className={styles.priceFilterLabel}>價位：</div>
+                    {(['$', '$$', '$$$', '$$$$'] as const).map((p) => {
+                      const checked = priceLevels.includes(p);
+                      return (
+                        <label key={p} className={styles.priceChip}>
+                          <input
+                            type="checkbox"
+                            className={styles.chipCheckbox}
+                            checked={checked}
+                            onChange={(e) => {
+                              const nextChecked = e.target.checked;
+                              setPriceLevels((prev) => {
+                                if (nextChecked) return [...prev, p];
+                                return prev.filter((x) => x !== p);
+                              });
+                            }}
+                          />
+                          <span className={checked ? styles.priceChipOn : styles.priceChipOff}>
+                            {p}
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {priceLevels.length > 0 && (
+                      <button
+                        type="button"
+                        className={styles.clearPriceButton}
+                        onClick={() => setPriceLevels([])}
+                      >
+                        清除
+                      </button>
+                    )}
+                  </div>
+
+                  {priceLevels.length > 0 && (
+                    <div className={styles.filterHint}>
+                      價位依據 Google Places API 的 <code>priceLevel</code>（非台幣客單價）；沒有價位資料的店會被排除。
+                    </div>
+                  )}
                 </div>
 
-              {filteredResults.length === 0 && onlyReservable ? (
+              {filteredResults.length === 0 && (onlyReservable || priceLevels.length > 0) ? (
                 <div className={styles.emptyMessage}>
-                  沒有可訂位的餐廳
+                  沒有符合篩選條件的餐廳
                 </div>
               ) : (
                 <div className={styles.resultsGrid}>
@@ -414,10 +466,53 @@ export default function Home() {
                     >
                       <h3 className={styles.restaurantName}>{r.name}</h3>
                       <p className={styles.restaurantAddress}>{r.address}</p>
+                      <div className={styles.contactSection} onClick={(e) => e.stopPropagation()}>
+                        {r.phone ? (
+                          <a className={styles.contactLink} href={`tel:${r.phone}`}>
+                            📞 {r.phone}
+                          </a>
+                        ) : (
+                          <span className={styles.contactMuted}>📞 —</span>
+                        )}
+                        {r.website ? (
+                          <a
+                            className={styles.contactLink}
+                            href={r.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            🌐 網站
+                          </a>
+                        ) : (
+                          <span className={styles.contactMuted}>🌐 —</span>
+                        )}
+                        {/* Places API 通常不直接提供 FB/IG；用一鍵搜尋做 best-effort */}
+                        <a
+                          className={styles.contactLink}
+                          href={`https://www.google.com/search?q=${encodeURIComponent(`${r.name} facebook`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          fb
+                        </a>
+                        <a
+                          className={styles.contactLink}
+                          href={`https://www.google.com/search?q=${encodeURIComponent(`${r.name} instagram`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          ig
+                        </a>
+                      </div>
                       <div className={styles.restaurantFooter}>
-                        <span className={styles.reservableBadge}>
-                          {r.reservable ? '✅ 可訂位' : '—'}
-                        </span>
+                        <div className={styles.badgeRow}>
+                          <span className={styles.reservableBadge}>
+                            {r.reservable ? '✅ 可訂位' : '—'}
+                          </span>
+                          <span className={styles.priceBadge}>
+                            {r.priceLevel ? r.priceLevel : '—'}
+                          </span>
+                        </div>
                         <a
                           href={r.mapsUrl}
                           target="_blank"

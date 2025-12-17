@@ -323,6 +323,72 @@
   border: 1px solid var(--border-color);
 }
 
+.priceFilterRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.priceFilterLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.priceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.chipCheckbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.priceChipOn,
+.priceChipOff {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.priceChipOff {
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.priceChipOn {
+  color: var(--foreground);
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.clearPriceButton {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.clearPriceButton:hover {
+  background-color: var(--button-secondary-hover);
+  border-color: var(--text-primary);
+}
+
 .mapSection {
   width: 100%;
   height: 520px;
@@ -386,6 +452,37 @@
   line-height: 1.5;
 }
 
+.contactSection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.contactLink {
+  color: var(--text-primary);
+  text-decoration: none;
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.contactLink:hover {
+  background-color: var(--button-secondary-hover);
+  border-color: var(--text-primary);
+}
+
+.contactMuted {
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-color);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
 .restaurantFooter {
   display: flex;
   justify-content: space-between;
@@ -393,6 +490,18 @@
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border-color);
+}
+
+.badgeRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.priceBadge {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .reservableBadge {

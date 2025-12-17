@@ -26,6 +26,11 @@ interface PlaceDetailsResponse {
   formattedAddress: string;
   googleMapsUri: string;
   reservable?: boolean;
+  // Places API v1 enum (e.g. PRICE_LEVEL_INEXPENSIVE, PRICE_LEVEL_MODERATE, ...)
+  priceLevel?: string;
+  nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
+  websiteUri?: string;
   location?: {
     latitude: number;
     longitude: number;
@@ -38,8 +43,28 @@ interface SearchResult {
   address: string;
   mapsUrl: string;
   reservable: boolean;
+  // Normalized "$"..."$$$$" for UI filtering
+  priceLevel?: '$' | '$$' | '$$$' | '$$$$';
+  phone?: string;
+  website?: string;
   lat?: number;
   lng?: number;
+}
+
+function normalizePriceLevel(level?: string): SearchResult['priceLevel'] {
+  switch (level) {
+    case 'PRICE_LEVEL_FREE':
+    case 'PRICE_LEVEL_INEXPENSIVE':
+      return '$';
+    case 'PRICE_LEVEL_MODERATE':
+      return '$$';
+    case 'PRICE_LEVEL_EXPENSIVE':
+      return '$$$';
+    case 'PRICE_LEVEL_VERY_EXPENSIVE':
+      return '$$$$';
+    default:
+      return undefined;
+  }
 }
 
 interface SearchResponse {
@@ -278,7 +303,8 @@ export async function GET(request: NextRequest) {
 
     // 7. Place Details API (New) - 并发限制 8
     const placeDetailsUrl = 'https://places.googleapis.com/v1/places/';
-    const fieldMask = 'id,displayName,formattedAddress,googleMapsUri,reservable,location';
+    const fieldMask =
+      'id,displayName,formattedAddress,googleMapsUri,reservable,priceLevel,location,nationalPhoneNumber,internationalPhoneNumber,websiteUri';
 
     const getPlaceDetails = async (placeId: string): Promise<SearchResult | null> => {
       try {
@@ -302,6 +328,9 @@ export async function GET(request: NextRequest) {
           address: detailsData.formattedAddress || '',
           mapsUrl: detailsData.googleMapsUri || '',
           reservable: detailsData.reservable || false,
+          priceLevel: normalizePriceLevel(detailsData.priceLevel),
+          phone: detailsData.nationalPhoneNumber || detailsData.internationalPhoneNumber,
+          website: detailsData.websiteUri,
           lat: detailsData.location?.latitude,
           lng: detailsData.location?.longitude,
         };
