@@ -483,6 +483,29 @@
   border-radius: 999px;
 }
 
+.visitedRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.visitedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.visitedToggle input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--text-primary);
+}
+
 .restaurantFooter {
   display: flex;
   justify-content: space-between;

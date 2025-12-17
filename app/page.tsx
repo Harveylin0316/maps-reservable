@@ -68,6 +68,8 @@ interface ResolveResponse {
   candidates: Candidate[];
 }
 
+const VISITED_STORAGE_KEY = 'maps-reservable:visitedPlaceIds:v1';
+
 export default function Home() {
   const [query, setQuery] = useState('中山區');
   const [radiusKm, setRadiusKm] = useState(2);
@@ -81,6 +83,8 @@ export default function Home() {
   const [lastAddedCount, setLastAddedCount] = useState(0);
   const [onlyReservable, setOnlyReservable] = useState(false);
   const [priceLevels, setPriceLevels] = useState<Array<'$' | '$$' | '$$$' | '$$$$'>>([]);
+  const [hideVisited, setHideVisited] = useState(true);
+  const [visitedPlaceIds, setVisitedPlaceIds] = useState<Set<string>>(new Set());
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusMeters, setRadiusMeters] = useState(0);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | undefined>();
@@ -89,6 +93,29 @@ export default function Home() {
   const [selectedLabel, setSelectedLabel] = useState<string>('');
   const [showCandidates, setShowCandidates] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load visited placeIds from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(VISITED_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setVisitedPlaceIds(new Set(parsed.filter((x) => typeof x === 'string')));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Persist visited placeIds to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(Array.from(visitedPlaceIds)));
+    } catch {
+      // ignore (e.g. storage quota / private mode)
+    }
+  }, [visitedPlaceIds]);
 
   // Debounce 调用 resolve API
   useEffect(() => {
@@ -369,6 +396,9 @@ export default function Home() {
               (r) => r.priceLevel && priceLevels.includes(r.priceLevel)
             );
           }
+          if (hideVisited) {
+            filteredResults = filteredResults.filter((r) => !visitedPlaceIds.has(r.placeId));
+          }
 
           const mapPoints = filteredResults
             .filter((r) => r.lat !== undefined && r.lng !== undefined)
@@ -407,6 +437,16 @@ export default function Home() {
                       className={styles.checkbox}
                     />
                     <span>只顯示可訂位 ✅</span>
+                  </label>
+
+                  <label className={styles.checkboxLabel} style={{ marginTop: 10 }}>
+                    <input
+                      type="checkbox"
+                      checked={hideVisited}
+                      onChange={(e) => setHideVisited(e.target.checked)}
+                      className={styles.checkbox}
+                    />
+                    <span>隱藏已去過 👣</span>
                   </label>
 
                   <div className={styles.priceFilterRow}>
@@ -449,9 +489,13 @@ export default function Home() {
                       價位依據 Google Places API 的 <code>priceLevel</code>（非台幣客單價）；沒有價位資料的店會被排除。
                     </div>
                   )}
+
+                  <div className={styles.filterHint}>
+                    已去過會保存在此瀏覽器（localStorage）。換手機/換瀏覽器不會同步。
+                  </div>
                 </div>
 
-              {filteredResults.length === 0 && (onlyReservable || priceLevels.length > 0) ? (
+              {filteredResults.length === 0 && (onlyReservable || priceLevels.length > 0 || hideVisited) ? (
                 <div className={styles.emptyMessage}>
                   沒有符合篩選條件的餐廳
                 </div>
@@ -466,6 +510,24 @@ export default function Home() {
                     >
                       <h3 className={styles.restaurantName}>{r.name}</h3>
                       <p className={styles.restaurantAddress}>{r.address}</p>
+                      <div className={styles.visitedRow} onClick={(e) => e.stopPropagation()}>
+                        <label className={styles.visitedToggle}>
+                          <input
+                            type="checkbox"
+                            checked={visitedPlaceIds.has(r.placeId)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setVisitedPlaceIds((prev) => {
+                                const next = new Set(prev);
+                                if (checked) next.add(r.placeId);
+                                else next.delete(r.placeId);
+                                return next;
+                              });
+                            }}
+                          />
+                          <span>去過 ✅</span>
+                        </label>
+                      </div>
                       <div className={styles.contactSection} onClick={(e) => e.stopPropagation()}>
                         {r.phone ? (
                           <a className={styles.contactLink} href={`tel:${r.phone}`}>
