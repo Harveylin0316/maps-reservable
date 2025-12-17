@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUsername } from '@/app/lib/session';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const username = await getSessionUsername();
   if (!username) {

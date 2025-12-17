@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { setSessionCookie } from '@/app/lib/session';
 
+export const runtime = 'nodejs';
+
 function requiredEnv(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`${name} is not configured`);
