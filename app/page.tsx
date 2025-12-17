@@ -172,7 +172,7 @@ export default function Home() {
       setLoginPassword('');
       try {
         await loadServerVisited();
-        setSyncInfo('✅ 已登入，已同步雲端「去過」清單');
+        setSyncInfo('✅ 已登入，已同步雲端「已簽約/跳過」清單');
       } catch (e) {
         setAuthError(
           e instanceof Error
@@ -422,7 +422,7 @@ export default function Home() {
                 登入（同步跨裝置）
               </button>
               <div className={styles.authMuted}>
-                沒登入時僅保存在本機；登入後可跨裝置同步「去過」。
+                沒登入時僅保存在本機；登入後可跨裝置同步「已簽約/跳過」。
               </div>
             </div>
           )}
@@ -591,7 +591,7 @@ export default function Home() {
                       onChange={(e) => setHideVisited(e.target.checked)}
                       className={styles.checkbox}
                     />
-                    <span>隱藏已去過 👣</span>
+                    <span>隱藏已簽約/跳過</span>
                   </label>
 
                   <div className={styles.priceFilterRow}>
@@ -636,7 +636,7 @@ export default function Home() {
                   )}
 
                   <div className={styles.filterHint}>
-                    已去過：未登入→保存在本機；登入→同步到雲端（跨裝置/跨瀏覽器）。
+                    已簽約/跳過：未登入→保存在本機；登入→同步到雲端（跨裝置/跨瀏覽器）。
                   </div>
                 </div>
 
@@ -699,7 +699,7 @@ export default function Home() {
                               }
                             }}
                           />
-                          <span>去過 ✅</span>
+                          <span>已簽約/跳過</span>
                         </label>
                       </div>
                       <div className={styles.contactSection} onClick={(e) => e.stopPropagation()}>
