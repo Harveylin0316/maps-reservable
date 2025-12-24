@@ -31,6 +31,7 @@ interface SearchResult {
   reservable: boolean;
   priceLevel?: '$' | '$$' | '$$$' | '$$$$';
   dineIn?: boolean;
+  signed?: boolean;
   phone?: string;
   website?: string;
   lat?: number;
@@ -769,6 +770,7 @@ export default function Home() {
                           <span className={styles.priceBadge}>
                             {r.priceLevel ? r.priceLevel : '—'}
                           </span>
+                          {r.signed && <span className={styles.signedBadge}>已簽約</span>}
                         </div>
                         <a
                           href={r.mapsUrl}

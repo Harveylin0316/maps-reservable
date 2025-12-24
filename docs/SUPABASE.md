@@ -22,6 +22,20 @@ create table if not exists public.visited_restaurants (
 );
 ```
 
+## 2b) (Optional) Create table for global "signed" restaurants
+
+If you have an official list (e.g. Google Sheet) of restaurants that are already signed, create this table:
+
+```sql
+create table if not exists public.signed_restaurants (
+  place_id text primary key,
+  name text,
+  source text,
+  note text,
+  updated_at timestamptz not null default now()
+);
+```
+
 Notes:
 - This app uses a **single shared username** as `user_id`.
 - Using the Service Role key means we bypass RLS. Keep the key private and only set it in server environments.

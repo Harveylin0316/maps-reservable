@@ -47,6 +47,7 @@ interface SearchResult {
   // Normalized "$"..."$$$$" for UI filtering
   priceLevel?: '$' | '$$' | '$$$' | '$$$$';
   dineIn?: boolean;
+  signed?: boolean;
   phone?: string;
   website?: string;
   lat?: number;
@@ -348,9 +349,28 @@ export async function GET(request: NextRequest) {
     const placeDetailsResults = await batchProcess(placeIds, 8, getPlaceDetails);
     
     // 过滤掉 null 值
-    const results: SearchResult[] = placeDetailsResults.filter(
+    let results: SearchResult[] = placeDetailsResults.filter(
       (result): result is SearchResult => result !== null
     );
+
+    // 7.5 Mark globally "signed" restaurants (optional Supabase table)
+    try {
+      const { getSupabaseAdmin } = await import('@/app/lib/supabaseAdmin');
+      const supabaseAdmin = getSupabaseAdmin();
+      const placeIds = results.map((r) => r.placeId);
+      if (placeIds.length > 0) {
+        const { data, error } = await supabaseAdmin
+          .from('signed_restaurants')
+          .select('place_id')
+          .in('place_id', placeIds);
+        if (!error) {
+          const signedSet = new Set((data || []).map((r: any) => r.place_id));
+          results = results.map((r) => ({ ...r, signed: signedSet.has(r.placeId) }));
+        }
+      }
+    } catch {
+      // ignore if Supabase not configured or table doesn't exist
+    }
 
     // 8. 返回结果
     const response: SearchResponse = {
