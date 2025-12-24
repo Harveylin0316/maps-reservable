@@ -623,7 +623,10 @@ export default function Home() {
             );
           }
           if (hideVisited) {
-            filteredResults = filteredResults.filter((r) => !visitedPlaceIds.has(r.placeId));
+            // Treat globally "signed" restaurants as default skipped too.
+            filteredResults = filteredResults.filter(
+              (r) => !visitedPlaceIds.has(r.placeId) && !r.signed
+            );
           }
 
           const mapPoints = filteredResults
@@ -755,8 +758,10 @@ export default function Home() {
                         <label className={styles.visitedToggle}>
                           <input
                             type="checkbox"
-                            checked={visitedPlaceIds.has(r.placeId)}
+                            checked={Boolean(r.signed) || visitedPlaceIds.has(r.placeId)}
+                            disabled={Boolean(r.signed)}
                             onChange={async (e) => {
+                              if (r.signed) return;
                               const checked = e.target.checked;
                               // optimistic UI
                               setVisitedPlaceIds((prev) => {
