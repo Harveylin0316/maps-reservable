@@ -72,6 +72,8 @@ interface ResolveResponse {
 
 const VISITED_STORAGE_KEY = 'maps-reservable:visitedPlaceIds:v1';
 
+type SearchMode = 'nearby' | 'place';
+
 export default function Home() {
   const [query, setQuery] = useState('中山區');
   const [radiusKm, setRadiusKm] = useState(2);
@@ -88,6 +90,7 @@ export default function Home() {
   const [priceLevels, setPriceLevels] = useState<Array<'$' | '$$' | '$$$' | '$$$$'>>([]);
   const [hideVisited, setHideVisited] = useState(true);
   const [visitedPlaceIds, setVisitedPlaceIds] = useState<Set<string>>(new Set());
+  const [searchMode, setSearchMode] = useState<SearchMode>('nearby');
   const [authLoading, setAuthLoading] = useState(true);
   const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null);
   const [loginUsername, setLoginUsername] = useState('');
@@ -101,6 +104,7 @@ export default function Home() {
   const [selectedCenter, setSelectedCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<string>('');
   const [showCandidates, setShowCandidates] = useState(false);
+  const [selectedCandidatePlaceId, setSelectedCandidatePlaceId] = useState<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadLocalVisited = () => {
@@ -264,6 +268,7 @@ export default function Home() {
   const handleCandidateSelect = (candidate: Candidate) => {
     setSelectedCenter({ lat: candidate.lat, lng: candidate.lng });
     setSelectedLabel(`${candidate.name} - ${candidate.address}`);
+    setSelectedCandidatePlaceId(candidate.placeId);
     setShowCandidates(false);
     setCandidates([]);
   };
@@ -290,6 +295,50 @@ export default function Home() {
     setCandidates([]);
 
     try {
+      // Search a specific restaurant/place (by placeId) instead of scanning nearby.
+      if (searchMode === 'place') {
+        let placeId = selectedCandidatePlaceId;
+
+        // If user didn't click a candidate, resolve once and use the top candidate.
+        if (!placeId) {
+          const resolveResp = await fetch(`/api/resolve?query=${encodeURIComponent(query)}`);
+          if (!resolveResp.ok) {
+            setError('無法解析餐廳/地點，請嘗試更完整的名稱或地址');
+            return;
+          }
+          const resolveData: ResolveResponse = await resolveResp.json();
+          const top = resolveData.candidates?.[0];
+          if (!top?.placeId) {
+            setError('找不到符合的餐廳/地點');
+            return;
+          }
+          placeId = top.placeId;
+          setSelectedCenter({ lat: top.lat, lng: top.lng });
+          setSelectedLabel(`${top.name} - ${top.address}`);
+          setSelectedCandidatePlaceId(top.placeId);
+        }
+
+        const placeResp = await fetch(`/api/place?placeId=${encodeURIComponent(placeId)}`);
+        if (!placeResp.ok) {
+          const errorData: ErrorResponse = await placeResp.json();
+          setError(errorData.error?.message || `錯誤：${placeResp.status}`);
+          return;
+        }
+        const placeResult: SearchResult = await placeResp.json();
+        setResults([placeResult]);
+        setPlaceIdSet(new Set([placeResult.placeId]));
+        setScanIndex(0);
+        setHasMore(false);
+        setLastAddedCount(1);
+        if (placeResult.lat !== undefined && placeResult.lng !== undefined) {
+          setCenter({ lat: placeResult.lat, lng: placeResult.lng });
+        } else {
+          setCenter(null);
+        }
+        setRadiusMeters(Math.round(radiusKm * 1000));
+        return;
+      }
+
       // 如果有 selectedCenter，使用 lat/lng，否则使用 query
       let searchUrl = `/api/search?radiusKm=${radiusKm}&scanIndex=0`;
       if (selectedCenter) {
@@ -437,9 +486,32 @@ export default function Home() {
         <div className={styles.contentWrapper}>
           <div className={styles.leftColumn}>
             <div className={styles.searchSection}>
+              <div className={styles.searchModeRow}>
+                <span className={styles.searchModeLabel}>搜尋模式：</span>
+                <button
+                  type="button"
+                  className={searchMode === 'nearby' ? styles.modeButtonOn : styles.modeButtonOff}
+                  onClick={() => setSearchMode('nearby')}
+                  disabled={loading}
+                >
+                  附近餐廳
+                </button>
+                <button
+                  type="button"
+                  className={searchMode === 'place' ? styles.modeButtonOn : styles.modeButtonOff}
+                  onClick={() => setSearchMode('place')}
+                  disabled={loading}
+                >
+                  指定餐廳/地點
+                </button>
+                {searchMode === 'place' && (
+                  <span className={styles.searchModeHint}>輸入店名直接搜尋該店</span>
+                )}
+              </div>
+
               <div className={styles.inputGroup}>
             <label htmlFor="query" className={styles.label}>
-              地址/地名
+              {searchMode === 'place' ? '餐廳/地點' : '地址/地名'}
             </label>
             <input
               id="query"
@@ -449,8 +521,9 @@ export default function Home() {
                 setQuery(e.target.value);
                 setSelectedCenter(null);
                 setSelectedLabel('');
+                setSelectedCandidatePlaceId(null);
               }}
-              placeholder="輸入地址或地名"
+              placeholder={searchMode === 'place' ? '輸入餐廳/地點名稱（可含地址）' : '輸入地址或地名'}
               className={styles.input}
               disabled={loading}
             />
@@ -477,6 +550,7 @@ export default function Home() {
                     onClick={() => {
                       setSelectedCenter(null);
                       setSelectedLabel('');
+                      setSelectedCandidatePlaceId(null);
                     }}
                     className={styles.clearButton}
                   >

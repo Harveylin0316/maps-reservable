@@ -76,6 +76,45 @@
   border: 1px solid var(--border-color);
 }
 
+.searchModeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.searchModeLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.modeButtonOn,
+.modeButtonOff {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.modeButtonOn {
+  background: var(--text-primary);
+  color: var(--foreground);
+  border-color: var(--text-primary);
+}
+
+.modeButtonOff:hover:not(:disabled) {
+  background-color: var(--button-secondary-hover);
+  border-color: var(--text-primary);
+}
+
+.searchModeHint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .inputGroup {
   display: flex;
   flex-direction: column;
