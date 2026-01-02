@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Maintenance</title>
+  </head>
+  <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
+    <div style="text-align:center;">
+      <h1>🚧 Service Temporarily Unavailable</h1>
+      <p>We’ll be back soon.</p>
+    </div>
+  </body>
+</html>
